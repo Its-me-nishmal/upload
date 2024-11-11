@@ -3,15 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Upload and Download Image from Telegram</title>
+    <title>Upload and Download Files from Telegram</title>
     <style>
         body {
             font-family: Arial, sans-serif;
             padding: 20px;
-        }
-        #imagePreview {
-            max-width: 300px;
-            margin-top: 20px;
         }
         .button {
             padding: 10px 20px;
@@ -27,61 +23,99 @@
             padding: 10px;
             margin: 20px 0;
         }
+        .file-preview {
+            margin-top: 20px;
+        }
+        .file-item {
+            margin-bottom: 10px;
+        }
+        .progress-bar {
+            width: 100%;
+            background-color: #f3f3f3;
+            margin: 5px 0;
+        }
+        .progress-bar span {
+            display: block;
+            height: 10px;
+            background-color: #4CAF50;
+            width: 0;
+        }
     </style>
 </head>
 <body>
-    <h1>Upload and View Image from Telegram</h1>
-    <input type="file" id="fileInput" accept="image/*">
-    <button id="sendImageButton" class="button">Send Image to Telegram</button>
+    <h1>Upload and View Files from Telegram</h1>
+    <input type="file" id="fileInput" accept="*/*" multiple>
+    <button id="sendFilesButton" class="button">Send Files to Telegram</button>
 
-    <div id="imagePreview"></div>
-    <div id="downloadLink"></div>
+    <div id="filePreview" class="file-preview"></div>
+    <div id="downloadLinks"></div>
 
     <script>
         const TELEGRAM_BOT_TOKEN = '1946326672:AAEwXYJ0QjXFKcpKMmlYD0V7-3TcFs_tcSA'; // Replace with your bot token
         const TELEGRAM_CHAT_ID = '1674758819'; // Replace with your chat ID
-        let selectedFile = null;
+        const MAX_FILES = 20; // Maximum number of files to upload
+        let selectedFiles = [];
 
         // Handle file selection
         document.getElementById('fileInput').addEventListener('change', function(event) {
-            selectedFile = event.target.files[0];
+            selectedFiles = Array.from(event.target.files).slice(0, MAX_FILES); // Limit to 20 files
+            displayFiles();
         });
 
-        // Function to send the image to Telegram using file picker
+        // Display selected files
+        function displayFiles() {
+            const previewContainer = document.getElementById('filePreview');
+            previewContainer.innerHTML = '';
+            selectedFiles.forEach((file, index) => {
+                const fileItem = document.createElement('div');
+                fileItem.classList.add('file-item');
+                fileItem.innerHTML = `
+                    <p><strong>File ${index + 1}: </strong>${file.name}</p>
+                    <div class="progress-bar"><span id="progress-${index}"></span></div>
+                `;
+                previewContainer.appendChild(fileItem);
+            });
+        }
+
+        // Function to send files to Telegram
         function sendToTelegram() {
-            if (!selectedFile) {
-                alert('Please select an image first.');
+            if (selectedFiles.length === 0) {
+                alert('Please select files first.');
                 return;
             }
 
-            const telegramApiUrl = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendPhoto`;
+            selectedFiles.forEach((file, index) => {
+                const formData = new FormData();
+                formData.append('chat_id', TELEGRAM_CHAT_ID);
+                formData.append('document', file); // Append file for upload
 
-            const formData = new FormData();
-            formData.append('chat_id', TELEGRAM_CHAT_ID);
-            formData.append('photo', selectedFile); // Append the selected file
+                const telegramApiUrl = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendDocument`;
 
-            fetch(telegramApiUrl, {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.ok) {
-                    alert('Image sent successfully!');
-                    const fileId = data.result.photo[0].file_id;
-                    getFileUrl(fileId);
-                } else {
-                    alert('Failed to send image');
-                }
-            })
-            .catch(error => {
-                console.error('Error sending image to Telegram:', error);
-                alert('Error sending image.');
+                const progressBar = document.getElementById(`progress-${index}`);
+
+                fetch(telegramApiUrl, {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.ok) {
+                        alert(`File ${index + 1} sent successfully!`);
+                        const fileId = data.result.document.file_id;
+                        getFileUrl(fileId, index);
+                    } else {
+                        alert(`Failed to send file ${index + 1}`);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error sending file to Telegram:', error);
+                    alert('Error sending file.');
+                });
             });
         }
 
         // Function to retrieve the file URL from Telegram using getFile
-        function getFileUrl(fileId) {
+        function getFileUrl(fileId, index) {
             const telegramApiUrl = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/getFile?file_id=${fileId}`;
 
             fetch(telegramApiUrl)
@@ -91,23 +125,23 @@
                         const filePath = data.result.file_path;
                         const fileUrl = `https://api.telegram.org/file/bot${TELEGRAM_BOT_TOKEN}/${filePath}`;
 
-                        // Display the image preview
-                        document.getElementById('imagePreview').innerHTML = `<img src="${fileUrl}" alt="Telegram Image">`;
-
-                        // Provide a download link
-                        document.getElementById('downloadLink').innerHTML = `<p><a href="${fileUrl}" download>Download Image</a></p>`;
+                        // Display the download link
+                        const downloadContainer = document.getElementById('downloadLinks');
+                        const downloadLink = document.createElement('p');
+                        downloadLink.innerHTML = `File ${index + 1}: <a href="${fileUrl}" download>Download File</a>`;
+                        downloadContainer.appendChild(downloadLink);
                     } else {
-                        alert('Failed to retrieve the file.');
+                        alert('Failed to retrieve file URL.');
                     }
                 })
                 .catch(error => {
-                    console.error('Error retrieving file URL from Telegram:', error);
+                    console.error('Error retrieving file URL:', error);
                     alert('Error retrieving file.');
                 });
         }
 
-        // Event listener for the button to send the image
-        document.getElementById('sendImageButton').addEventListener('click', sendToTelegram);
+        // Event listener for the button to send files
+        document.getElementById('sendFilesButton').addEventListener('click', sendToTelegram);
     </script>
 </body>
 </html>
