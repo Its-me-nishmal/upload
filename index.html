@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Send and Download Image from Telegram</title>
+    <title>Upload and Download Image from Telegram</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -23,28 +23,42 @@
         .button:hover {
             background-color: #45a049;
         }
+        input[type="file"] {
+            padding: 10px;
+            margin: 20px 0;
+        }
     </style>
 </head>
 <body>
-    <h1>Send and View Image from Telegram</h1>
+    <h1>Upload and View Image from Telegram</h1>
+    <input type="file" id="fileInput" accept="image/*">
     <button id="sendImageButton" class="button">Send Image to Telegram</button>
 
     <div id="imagePreview"></div>
     <div id="downloadLink"></div>
 
     <script>
-        // Telegram Bot API Token
         const TELEGRAM_BOT_TOKEN = '1946326672:AAEwXYJ0QjXFKcpKMmlYD0V7-3TcFs_tcSA'; // Replace with your bot token
         const TELEGRAM_CHAT_ID = '@Nichu_786'; // Replace with your chat ID
-        const FILE_ID = 'AgACAgQAAx0EZry-tQACb-tnASD9PwvMJnaOcdeKgsyKAkzUwwACMrUxG5IIDFDEOzk2DsIW4wEAAwIAA3MAAzYE'; // Replace with your file_id
+        let selectedFile = null;
 
-        // Function to send the image to Telegram using file_id
+        // Handle file selection
+        document.getElementById('fileInput').addEventListener('change', function(event) {
+            selectedFile = event.target.files[0];
+        });
+
+        // Function to send the image to Telegram using file picker
         function sendToTelegram() {
+            if (!selectedFile) {
+                alert('Please select an image first.');
+                return;
+            }
+
             const telegramApiUrl = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendPhoto`;
 
             const formData = new FormData();
             formData.append('chat_id', TELEGRAM_CHAT_ID);
-            formData.append('photo', FILE_ID); // Using the file_id to send the image
+            formData.append('photo', selectedFile); // Append the selected file
 
             fetch(telegramApiUrl, {
                 method: 'POST',
