@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Send and Download Image from Telegram</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+        #imagePreview {
+            max-width: 300px;
+            margin-top: 20px;
+        }
+        .button {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        .button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <h1>Send and View Image from Telegram</h1>
+    <button id="sendImageButton" class="button">Send Image to Telegram</button>
+
+    <div id="imagePreview"></div>
+    <div id="downloadLink"></div>
+
+    <script>
+        // Telegram Bot API Token
+        const TELEGRAM_BOT_TOKEN = '1946326672:AAEwXYJ0QjXFKcpKMmlYD0V7-3TcFs_tcSA'; // Replace with your bot token
+        const TELEGRAM_CHAT_ID = '@freehackingclasses'; // Replace with your chat ID
+        const FILE_ID = 'AgACAgQAAx0EZry-tQACb-tnASD9PwvMJnaOcdeKgsyKAkzUwwACMrUxG5IIDFDEOzk2DsIW4wEAAwIAA3MAAzYE'; // Replace with your file_id
+
+        // Function to send the image to Telegram using file_id
+        function sendToTelegram() {
+            const telegramApiUrl = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendPhoto`;
+
+            const formData = new FormData();
+            formData.append('chat_id', TELEGRAM_CHAT_ID);
+            formData.append('photo', FILE_ID); // Using the file_id to send the image
+
+            fetch(telegramApiUrl, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.ok) {
+                    alert('Image sent successfully!');
+                    const fileId = data.result.photo[0].file_id;
+                    getFileUrl(fileId);
+                } else {
+                    alert('Failed to send image');
+                }
+            })
+            .catch(error => {
+                console.error('Error sending image to Telegram:', error);
+                alert('Error sending image.');
+            });
+        }
+
+        // Function to retrieve the file URL from Telegram using getFile
+        function getFileUrl(fileId) {
+            const telegramApiUrl = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/getFile?file_id=${fileId}`;
+
+            fetch(telegramApiUrl)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.ok) {
+                        const filePath = data.result.file_path;
+                        const fileUrl = `https://api.telegram.org/file/bot${TELEGRAM_BOT_TOKEN}/${filePath}`;
+
+                        // Display the image preview
+                        document.getElementById('imagePreview').innerHTML = `<img src="${fileUrl}" alt="Telegram Image">`;
+
+                        // Provide a download link
+                        document.getElementById('downloadLink').innerHTML = `<p><a href="${fileUrl}" download>Download Image</a></p>`;
+                    } else {
+                        alert('Failed to retrieve the file.');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error retrieving file URL from Telegram:', error);
+                    alert('Error retrieving file.');
+                });
+        }
+
+        // Event listener for the button to send the image
+        document.getElementById('sendImageButton').addEventListener('click', sendToTelegram);
+    </script>
+</body>
+</html>
